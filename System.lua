@@ -1,3 +1,15 @@
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+    StarterGui:SetCore("SendNotification", {
+        Title = "⚠📵Unsupported Device!";
+        Text = "This feature is not available on mobile devices.";
+        Duration = 12;
+    })
+    return
+end
+--========================================--
+
 if _G.Camera_Viewer then
     warn("Script đã chạy! Không thể chạy lại.")
     return

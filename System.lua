@@ -1,3 +1,15 @@
+if _G.Camera_Viewer then
+    warn("Script đã chạy! Không thể chạy lại.")
+    return
+end
+_G.Camera_Viewer = true
+
+game.StarterGui:SetCore("SendNotification", {
+    Title = "⚙Camera Viewer👁";
+    Text = "🔔Press Shift + P to enable or disable.";
+    Duration = 20;
+})
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")

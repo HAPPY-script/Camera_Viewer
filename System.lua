@@ -51,6 +51,72 @@ local connRender = nil
 local prevMousePos = Vector2.new()
 local initialMouseCaptured = false
 
+-- ===== Speed display UI (paste right after STATE block) =====
+local speedGui = nil
+local speedLabel = nil
+local _lastSpeedChange = 0
+
+local function createSpeedGui()
+    if speedGui and speedGui.Parent then return end
+    -- create screen gui under PlayerGui
+    speedGui = Instance.new("ScreenGui")
+    speedGui.Name = "FlyCam_SpeedGui"
+    speedGui.ResetOnSpawn = false
+    speedGui.IgnoreGuiInset = true
+    speedGui.Parent = player:WaitForChild("PlayerGui")
+
+    speedLabel = Instance.new("TextLabel")
+    speedLabel.Name = "SpeedLabel"
+    speedLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    speedLabel.Position = UDim2.new(0.5, 0, 0.5, 0) -- center
+    speedLabel.Size = UDim2.new(0.14, 0, 0.06, 0) -- ~14% width, 6% height (small & readable)
+    speedLabel.BackgroundTransparency = 0.5
+    speedLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    speedLabel.BorderSizePixel = 0
+    speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    speedLabel.Font = Enum.Font.SourceSansBold
+    speedLabel.TextScaled = true
+    speedLabel.Text = tostring(math.floor(speed))
+    speedLabel.Visible = false
+    speedLabel.ZIndex = 1000
+    speedLabel.Parent = speedGui
+end
+
+local function destroySpeedGui()
+    if speedGui then
+        speedGui:Destroy()
+    end
+    speedGui = nil
+    speedLabel = nil
+    _lastSpeedChange = 0
+end
+
+-- show value and auto-hide after 0.5s of no wheel activity
+local function showSpeedUI()
+    if not enabled then return end
+    if not speedGui then createSpeedGui() end
+    if not speedLabel then return end
+
+    speedLabel.Text = tostring(math.floor(speed))
+    speedLabel.Visible = true
+    _lastSpeedChange = tick()
+
+    -- start a delayed hide check (each wheel event will update _lastSpeedChange,
+    -- so hide only if 0.5s passed since last change)
+    delay(0.5, function()
+        if speedLabel and (tick() - _lastSpeedChange) >= 0.5 then
+            -- double-check enabled state
+            if enabled then
+                speedLabel.Visible = false
+            else
+                -- if camera disabled, ensure removed
+                destroySpeedGui()
+            end
+        end
+    end)
+end
+-- =============================================================
+
 -- Utility: restore camera to default (Custom + subject = humanoid or workspace)
 local function restoreCamera()
     if camera then
@@ -148,6 +214,8 @@ local function onInputChanged(input)
         elseif delta < 0 then
             speed = math.clamp(speed - SPEED_STEP, MIN_SPEED, MAX_SPEED)
         end
+        -- show UI when wheel used (only when enabled)
+        showSpeedUI()
     end
 end
 
@@ -157,9 +225,11 @@ local function setupMouseWheelFallback()
     if success and mouse then
         mouse.WheelForward:Connect(function()
             speed = math.clamp(speed + SPEED_STEP, MIN_SPEED, MAX_SPEED)
+            showSpeedUI()
         end)
         mouse.WheelBackward:Connect(function()
             speed = math.clamp(speed - SPEED_STEP, MIN_SPEED, MAX_SPEED)
+            showSpeedUI()
         end)
     end
 end
@@ -241,6 +311,9 @@ local function toggleAction(actionName, inputState, inputObject)
             UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
             UserInputService.MouseIconEnabled = false
 
+            -- ensure gui exists (not visible until wheel used)
+            createSpeedGui()
+
             -- Cho phép quay bằng việc di chuột (không cần giữ chuột phải)
             rotating = true
 
@@ -256,6 +329,9 @@ local function toggleAction(actionName, inputState, inputObject)
             rotating = false
             UserInputService.MouseBehavior = Enum.MouseBehavior.Default
             UserInputService.MouseIconEnabled = true
+
+            -- destroy speed UI immediately
+            destroySpeedGui()
 
             local char = player.Character
             local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -288,6 +364,7 @@ local function onCharacterRemoving()
         rotating = false
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
         UserInputService.MouseIconEnabled = true
+        destroySpeedGui()
     end
 end
 

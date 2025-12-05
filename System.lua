@@ -38,6 +38,8 @@ local MAX_SPEED = 1000
 local SPEED_STEP = 10           -- when using wheel
 local MOUSE_SENSITIVITY = 0.005 -- rotation sensitivity
 local PITCH_LIMIT = math.rad(89) -- limit pitch to avoid gimbal
+local ROTATION_SMOOTH = 20   -- higher = snappier rotation (try 8-20)
+local MOVEMENT_SMOOTH = 10   -- higher = snappier movement (try 6-20)
 
 -- STATE
 local enabled = false
@@ -50,6 +52,9 @@ local moveState = {W=false,A=false,S=false,D=false,Q=false,E=false}
 local connRender = nil
 local prevMousePos = Vector2.new()
 local initialMouseCaptured = false
+local targetYaw = yaw
+local targetPitch = pitch
+local targetPos = Vector3.new() -- will init when creating flyPart
 
 -- ===== Speed display UI (paste right after STATE block) =====
 local speedGui = nil
@@ -160,46 +165,51 @@ local function destroyFlyPart()
     flyPart = nil
 end
 
--- Update camera each frame to follow flyPart
 local function renderStep(dt)
     if not flyPart then return end
+    local rotAlpha = 1 - math.exp(-ROTATION_SMOOTH * dt)
+    local moveAlpha = 1 - math.exp(-MOVEMENT_SMOOTH * dt)
+    local overallAlpha = math.max(rotAlpha, moveAlpha)
 
-    -- rotation already applied to flyPart in mouse code; maintain camera at flyPart CFrame
-    camera.CFrame = flyPart.CFrame
-    -- movement: compute from moveState
-    local moveVec = Vector3.new(0,0,0)
-    if moveState.W then moveVec = moveVec + flyPart.CFrame.LookVector end
-    if moveState.S then moveVec = moveVec - flyPart.CFrame.LookVector end
-    if moveState.D then moveVec = moveVec + flyPart.CFrame.RightVector end
-    if moveState.A then moveVec = moveVec - flyPart.CFrame.RightVector end
-    if moveState.E then moveVec = moveVec + flyPart.CFrame.UpVector end
-    if moveState.Q then moveVec = moveVec - flyPart.CFrame.UpVector end
+    local desiredMove = Vector3.new(0,0,0)
+    if moveState.W then desiredMove = desiredMove + flyPart.CFrame.LookVector end
+    if moveState.S then desiredMove = desiredMove - flyPart.CFrame.LookVector end
+    if moveState.D then desiredMove = desiredMove + flyPart.CFrame.RightVector end
+    if moveState.A then desiredMove = desiredMove - flyPart.CFrame.RightVector end
+    if moveState.E then desiredMove = desiredMove + flyPart.CFrame.UpVector end
+    if moveState.Q then desiredMove = desiredMove - flyPart.CFrame.UpVector end
 
-    if moveVec.Magnitude > 0 then
-        local deltaPos = moveVec.Unit * speed * dt
-        local newPos = flyPart.Position + deltaPos
-        -- apply rotation: keep orientation (we construct CFrame from position and stored yaw/pitch)
-        local orient = CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
-        flyPart.CFrame = CFrame.new(newPos) * orient
+    if targetPos == nil or targetPos == Vector3.new() then
+        targetPos = flyPart.Position
     end
+
+    if desiredMove.Magnitude > 0 then
+        targetPos = targetPos + desiredMove.Unit * speed * dt
+    end
+
+    yaw = yaw + (targetYaw - yaw) * rotAlpha
+    pitch = pitch + (targetPitch - pitch) * rotAlpha
+
+    local orient = CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
+    local targetCFrame = CFrame.new(targetPos) * orient
+
+    flyPart.CFrame = flyPart.CFrame:Lerp(targetCFrame, overallAlpha)
+    camera.CFrame = flyPart.CFrame
 end
 
--- Mouse movement rotation handler
+-- Mouse movement rotation handler (now write to targetYaw/targetPitch)
 local function onMouseMove(input)
     if not rotating or not flyPart then return end
-    -- input is InputObject with Delta
     local dx = input.Delta.X
     local dy = input.Delta.Y
-    yaw = yaw - dx * MOUSE_SENSITIVITY
-    pitch = pitch - dy * MOUSE_SENSITIVITY
-    -- clamp pitch
-    if pitch > PITCH_LIMIT then pitch = PITCH_LIMIT end
-    if pitch < -PITCH_LIMIT then pitch = -PITCH_LIMIT end
 
-    -- update flyPart orientation while keeping position
-    local pos = flyPart.Position
-    local orient = CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
-    flyPart.CFrame = CFrame.new(pos) * orient
+    -- update target rotation (do NOT snap immediately)
+    targetYaw = targetYaw - dx * MOUSE_SENSITIVITY
+    targetPitch = targetPitch - dy * MOUSE_SENSITIVITY
+
+    -- clamp pitch on target
+    if targetPitch > PITCH_LIMIT then targetPitch = PITCH_LIMIT end
+    if targetPitch < -PITCH_LIMIT then targetPitch = -PITCH_LIMIT end
 end
 
 -- Wheel to change speed (InputChanged fallback)
@@ -303,6 +313,10 @@ local function toggleAction(actionName, inputState, inputObject)
             -- apply orientation
             local orient = CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
             flyPart.CFrame = CFrame.new(flyPart.Position) * orient
+
+            targetPos = flyPart.Position
+            targetYaw = yaw
+            targetPitch = pitch
 
             -- set camera to scriptable and lock to part
             camera.CameraType = Enum.CameraType.Scriptable

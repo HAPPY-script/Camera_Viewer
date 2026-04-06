@@ -399,7 +399,7 @@ script.Destroying:Connect(function()
     end
 end)
 
---=== CAMERA ZOOM SYSTEM CTRL + MOUSE ================================================================================================--
+--[[=== CAMERA ZOOM SYSTEM CTRL + MOUSE ================================================================================================--
 
 do
     local Players = game:GetService("Players")
@@ -592,3 +592,4 @@ do
     	end)
     end)
 end
+]]

@@ -19,14 +19,13 @@ _G.Camera_Viewer = true
 
 _G.HAPPYnotification = {
 	title = "⚙Camera Viewer👁",
-	text = "🔔Press <b>Shift + P<b> to enable or disable.",
+	text = "🔔Press <b>Shift + P</b> to enable or disable.",
 	color = {255, 255, 255},
 	time = 20
 }
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 
 local player = Players.LocalPlayer
@@ -249,10 +248,6 @@ end
 -- Input began / ended for movement keys and rotation
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == TOGGLE_KEY then
-        -- toggle handled separately (use Action for safety)
-        return
-    end
 
     if input.KeyCode == Enum.KeyCode.W then moveState.W = true end
     if input.KeyCode == Enum.KeyCode.S then moveState.S = true end

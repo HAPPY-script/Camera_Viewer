@@ -1,11 +1,12 @@
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
-    StarterGui:SetCore("SendNotification", {
-        Title = "⚠📵Unsupported Device!";
-        Text = "This feature is not available on mobile devices.";
-        Duration = 12;
-    })
+	_G.HAPPYnotification = {
+		title = "⚠📵Unsupported Device!",
+		text = "This feature is not available on mobile devices.",
+		color = {255, 255, 255},
+		time = 12
+	}
     return
 end
 --========================================--
@@ -18,7 +19,7 @@ _G.Camera_Viewer = true
 
 _G.HAPPYnotification = {
 	title = "⚙Camera Viewer👁",
-	text = "🔔Press Shift + P to enable or disable.",
+	text = "🔔Press <b>Shift + P<b> to enable or disable.",
 	color = {255, 255, 255},
 	time = 20
 }

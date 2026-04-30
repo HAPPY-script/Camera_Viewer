@@ -16,11 +16,12 @@ if _G.Camera_Viewer then
 end
 _G.Camera_Viewer = true
 
-game.StarterGui:SetCore("SendNotification", {
-    Title = "⚙Camera Viewer👁";
-    Text = "🔔Press Shift + P to enable or disable.";
-    Duration = 20;
-})
+_G.HAPPYnotification = {
+	title = "⚙Camera Viewer👁",
+	text = "🔔Press Shift + P to enable or disable.",
+	color = {255, 255, 255},
+	time = 20
+}
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")

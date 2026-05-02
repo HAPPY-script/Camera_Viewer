@@ -18,7 +18,7 @@ end
 _G.Camera_Viewer = true
 
 _G.HAPPYnotification = {
-	title = "⚙Camera Viewer👁",
+	title = "⚙Free camera👁",
 	text = "🔔Press <b>Shift + P</b> to enable or disable.",
 	color = {255, 255, 255},
 	time = 20
